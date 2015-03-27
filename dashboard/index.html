@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SendGrid &raquo; Email Events Data</title>
+  <link rel="stylesheet" type="text/css" href="../assets/lib/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="../assets/css/keen-dashboards.css" />
+</head>
+<body class="application">
+
+  <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../">
+          <span class="glyphicon glyphicon-chevron-left"></span>
+        </a>
+        <a class="navbar-brand" href="./">SendGrid &raquo; Email Events Data</a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-left">
+          <li><a href="https://keen.io">Home</a></li>
+          <li><a href="https://keen.io/team">Team</a></li>
+          <li><a href="https://github.com/keenlabs/dashboards/tree/gh-pages/layouts/hero-thirds">Source</a></li>
+          <li><a href="https://groups.google.com/forum/#!forum/keen-io-devs">Community</a></li><li><a href="http://stackoverflow.com/questions/tagged/keen-io?sort=newest&pageSize=15">Technical Support</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+
+    <div class="row">
+      <div class="col-sm-8">
+        <div class="chart-wrapper">
+          <div class="chart-title">
+            Last 30 Days Events
+          </div>
+          <div class="chart-stage" id="daily-send-30-days">
+          </div>
+          <div class="chart-notes">
+            Notes about this chart
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="chart-wrapper">
+          <div class="chart-title">
+            Email Delivery Funnel
+          </div>
+          <div class="chart-stage" id="delivery-funnel">
+          </div>
+          <div class="chart-notes">
+            Notes about this chart
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-sm-6 col-md-4">
+        <div class="chart-wrapper">
+          <div class="chart-title">
+            All-time Email Sent
+          </div>
+          <div class="chart-stage" id="all-time-emails-sent">
+          </div>
+          <div class="chart-notes">
+            Notes about this chart
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="chart-wrapper">
+          <div class="chart-title">
+            Opened Email Conversion
+          </div>
+          <div class="chart-stage" id="opened-email-conversion">
+          </div>
+          <div class="chart-notes">
+            Notes about this chart
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="chart-wrapper">
+          <div class="chart-title">
+            Monthly Spam Reports
+          </div>
+          <div class="chart-stage" id="spam_monthly_count">
+          </div>
+          <div class="chart-notes">
+            Notes about this chart
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+    <hr>
+
+    <p class="small text-muted">Built with &#9829; by <a href="https://keen.io">Keen IO</a></p>
+
+  </div>
+
+  <script type="text/javascript" src="../assets/lib/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="../assets/lib/bootstrap/dist/js/bootstrap.min.js"></script>
+
+  <script type="text/javascript" src="../assets/lib/holderjs/holder.js"></script>
+  <script>
+    Holder.add_theme("white", { background:"#fff", foreground:"#a7a7a7", size:10 });
+  </script>
+
+  <script type="text/javascript" src="../assets/lib/keen-js/dist/keen.min.js"></script>
+  <script type="text/javascript" src="../assets/js/meta.js"></script>
+
+  <script>
+    // start by creating a Keen object
+    var client = new Keen({
+      projectId: "YOUR_PROJECT_ID",
+      readKey: "YOUR_PROJECT_READ_KEY"
+    });
+
+    Keen.ready(function(){
+      // query and draw a column chart
+      // all events for the past 30 days, and a daily interval
+      var daily_send_static = new Keen.Query("count", {
+        eventCollection: "Sendgrid Email Events",
+        groupBy: "event",
+        timeframe: "this_30_days",
+        interval: "daily"
+      });
+
+      client.draw(daily_send_static, document.getElementById("daily-send-30-days"), {
+        chartType: "columnchart",
+        title: false,
+        height: 250,
+        width: "auto",
+        chartOptions: {
+          chartOptions: {
+            isStacked: true
+          }
+        }
+      });
+
+      // query and draw a barchart
+      // activation funnel, from delivered to opened to read to clicked
+      var watch_activation_funnel = new Keen.Query("funnel", {
+        steps: [
+          {
+             event_collection: "Sendgrid Email Events",
+             actor_property: "sg_message_id",
+             filters: [
+                {
+                  "property_name" : "event",
+                  "operator" : "eq",
+                  "property_value" : "delivered"
+                }
+             ],
+             timeframe: "last_30_days"
+          },
+          {
+            event_collection: "Sendgrid Email Events",
+             actor_property: "sg_message_id",
+             filters: [
+                {
+                  "property_name" : "event",
+                  "operator" : "eq",
+                  "property_value" : "open"
+                }
+             ],
+             timeframe: "last_30_days"
+          },
+          {
+            event_collection: "Sendgrid Email Events",
+             actor_property: "sg_message_id",
+             filters: [
+                {
+                  "property_name"   : "event",
+                  "operator"      : "in",
+                  "property_value"  : ["open", "click", "unsubscribe", "spam"]
+                }
+             ],
+             timeframe: "last_30_days"
+          },
+          {
+            event_collection: "Sendgrid Email Events",
+            actor_property: "sg_message_id",
+            filters: [
+              {
+                "property_name" : "event",
+                "operator" : "eq",
+                "property_value" : "click"
+              }
+            ],
+            timeframe: "last_30_days"
+          }
+        ]
+      });
+
+      client.draw(watch_activation_funnel, document.getElementById("delivery-funnel"), {
+        library: "google",
+        chartType: "barchart",
+        height: 250,
+        title: null,
+        colors: ["#79CDCD"],
+        labels: [ "Delivered", "Opened", "Read", "Clicked" ],
+        chartOptions: {
+          chartArea: { height: "85%", left: "20%", top: "5%" },
+          legend: { position: "none" }
+        }
+      });
+
+      // query and draw a metric (a number + text)
+      // all-time emails sent
+      var count = new Keen.Query("count", {
+        eventCollection: "Sendgrid Email Events",
+        filters: [
+          {
+            "property_name" : "event",
+            "operator" : "eq",
+            "property_value" : "delivered"
+          }
+        ],
+      });
+      client.draw(count, document.getElementById("all-time-emails-sent"), {
+        chartType: "metric",
+        title: "All-time Emails Sent",
+        colors: ["#49c5b1"],
+      });
+
+      // query and draw a metric (a number + text)
+      // spam events for the past 30 days
+      // green background if equals 0, red background if it's more than 0
+      var count_spam_monthly = new Keen.Query("count", {
+        eventCollection: "Sendgrid Email Events",
+        filters: [
+          {
+            "property_name" : "event",
+            "operator" : "eq",
+            "property_value" : "spam"
+          }
+        ],
+        timeframe: "last_30_days",
+      });
+
+      // prepare chart
+      var spam_metric = new Keen.Dataviz()
+        .el(document.getElementById("spam_monthly_count"))
+        .chartType("metric")
+        .title("Monthly Spam Reports")
+        .prepare(); // start spinner
+
+      // run query first, analyze results then draw it
+      var spam_query = client.run([count_spam_monthly], function(err, res){
+        if (err) {
+          // Display the API error
+          spam_metric.error(err.message);
+        }
+        else {
+          var spam_count = res.result;  // data from query
+
+          var metric_color = spam_count === 0 ? "#49c5b1" : "#fe6672";
+
+          spam_metric
+            .colors([metric_color])
+            .parseRawData(res)
+            .render();
+        }
+      });
+
+      // query and draw a piechart
+      // get open events and delivered events, then execute both queries at the same time
+      var openMetric = new Keen.Query("count", {
+        eventCollection: "Sendgrid Email Events",
+        targetProperty: "event",
+        filters: [
+        {
+          "property_name"   : "event",
+          "operator"    : "in",
+          "property_value"  : ["open", "click", "unsubscribe", "spam"]
+        }
+        ]
+      });
+      var deliveredMetric = new Keen.Query("count", {
+        eventCollection: "Sendgrid Email Events",
+        targetProperty: "event",
+        filters: [
+        {
+          "property_name"   : "event",
+          "operator"    : "eq",
+          "property_value"  : "delivered"
+        }
+        ]
+      });
+
+      var pie_chart = new Keen.Dataviz()
+        .el(document.getElementById("opened-email-conversion"))
+        .chartType("piechart")
+        .title("Conversion %")
+        .prepare(); // start spinner
+
+      // Send queries to Keen IO
+      var mashup = client.run([openMetric, deliveredMetric], function(err, res){
+        if (err) {
+          // Display the API error
+          pie_chart.error(err.message);
+        }
+        else {
+          var openMetricResults = res[0].result;  // data from first query
+          var deliveredMetricResults = res[1].result;  // data from second query
+          var data = [];  // place for combined results
+
+          data[0]= // format the data so it can be charted
+          [
+              { category: "Opened - Delivered", result: deliveredMetricResults - openMetricResults },
+          ];
+
+          data[1]=// format the data so it can be charted
+          [
+            { category: "Delivered", result: deliveredMetricResults },
+          ];
+          pie_chart
+            .parseRawData({
+              result: data
+            })
+            .render();
+        }
+      });
+    });
+
+</script>
+
+</body>
+</html>
